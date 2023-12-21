@@ -1,2 +1,2 @@
-# stm32ConsoleLineInterfaceWithMemTest
-CLI for microcontroller stm32f723e_disco with complete memtest, different commands. controlable display over cli, echo command and texteditor build in and much more...
+# stm32memtest   
+_le mémtest_
