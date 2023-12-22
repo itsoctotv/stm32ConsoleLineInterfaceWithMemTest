@@ -14,6 +14,9 @@ int getRandomNumber(int steps, int limit);
 void memTestSimple(int addr);
 #define LIMIT 100 //maximum array limit 13000
 #define LIMIT2 100000 //for simple memtest
+//for the sleep thing (experimental)
+//#define STEPS_PER_SEC 1000
+
 
 void MainTask(void) {
     while (1) {
@@ -55,7 +58,10 @@ void MainTask(void) {
     		    		"							  (i think)\r\n"
     		    		"read                      -> (editor command) reads/displays the contents\r\n"
     		    		"                             of the file\r\n"
-    		    		"clear                     -> (editor command) clears the FILE-buffer\r\n");
+    		    		"clear                     -> (editor command) clears the FILE-buffer\r\n"
+    		    		"run                       -> runs a script (if found) in the FILE-buffer\r\n"
+    		    		"                     !script to define one !endscript to close it;\r\n"
+    		    		"                      supported commands: echo, display clear/set\r\n");
 
     		}
 
@@ -201,6 +207,98 @@ void MainTask(void) {
     			printf("FILE-buffer cleared.\r\n");
 
     		}
+    		//scripting stuff
+    		else if(strcmp(command, "run") == 0){
+    			if(strcmp(file[0], "!script") == 0){
+    				//running script
+    				int i = 1;
+    				while(strcmp(file[i], "!endscript") != 0){
+
+    					//TODO migrate commands for script use to functions!
+
+
+
+    					//echo command in script
+    					if(strcmp(file[i],"echo") == 0){
+    						printf("Syntax error at line %d String expected!\r\n", i);
+    						break;
+    					}
+    					else if(strncmp(file[i], "echo ",5) == 0){
+    						char text[100] = "\0";
+    						strcpy(text, file[i]);
+    						for(int i = 5; i < sizeof(text)-5; i++){ // i starts at 4 because of e c h o < TEXT > so it doesnt print "echo "
+    							printf("%c",text[i]);
+    						}
+    						printf("\r\n"); // add return and newline after completed word
+    					}
+
+
+    					//display command
+    					else if((strcmp(file[i],"display") == 0) || (strcmp(file[i], "display set") == 0)){
+    						printf("Syntax error at line %d\r\n",i);
+    						break;
+    					}
+    					else if(strcmp(file[i], "display clear") == 0){
+    						GUI_Clear();
+    						printf("Display cleared.\r\n");
+    					}
+    					else if(strncmp(file[i], "display set ",12) == 0){
+    						char text[100] = "\0";
+    						strcpy(text, file[i]);
+
+    						int posX = (LCD_GetXSize()-100)/2; // default value for posX
+    						int posY = (LCD_GetYSize()-20)/2; // default value for posY
+
+    						char temp[100] = "\0";
+    						int temp_i = 0;
+    						for(int i = 12; i < sizeof(text)-12; i++){ // i starts at 12 to filter out the user input string
+    							//temp = for constructing the string from text[] to be displayed in the GUI_Disp() func
+    							temp[temp_i] = text[i]; //start copying chars from text[] "i" place into temp[] at the temp_i place (0)
+    							temp_i++;
+    						}
+    						GUI_DispStringAt(temp, posX,posY);
+    						printf("Displayed string.\r\n");
+    					}
+    					/*
+    					else if(strcmp(file[i], "sleep") == 0){
+    						printf("Syntax error at line %d Value expected\r\n", i);
+    						break;
+    					}
+    					else if(strncmp(file[i],"sleep ", 6) == 0){
+    						int sleepnum = 0;
+    						char text[100] = "\0";
+    						char sleepchars[sizeof(text)];
+    						int temp_i = 0;
+   							strcpy(text, file[i]);
+    						for(int i = 6; i < sizeof(sleepchars); i++){
+    							sleepchars[temp_i] = text[i];
+    							temp_i++;
+    						}
+    						sleepnum = atoi(sleepchars);
+    						printf("%d\r\n",sleepnum);
+    						for(int a = 0; a < sleepnum; a++){
+    							for(int b = 0; b < STEPS_PER_SEC; b++){
+    								asm volatile("nop");
+    							}
+    						}
+    					}*/
+
+    					else{
+    						printf("Failed to parse FILE. Check the syntax!\r\n");
+    						break;
+    					}
+
+    					i++;
+
+
+    				}
+    				//printf("exit while loop\r\n");
+    			}
+    			else{
+    				printf("No script found in buffer!\r\n");
+    			}
+    		}
+
 
 
     		else{
@@ -226,7 +324,6 @@ void MainTask(void) {
 
 
 }
-
 
 void memTestStart(int address, int segments){
 	int currAddr = 0;
