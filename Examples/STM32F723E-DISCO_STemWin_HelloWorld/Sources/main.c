@@ -250,6 +250,7 @@ static void BSP_Config(void)
   /* Configure LED_RED, LED_GREEN */
   BSP_LED_Init(LED_RED);
   BSP_LED_Init(LED_GREEN);
+  BSP_PB_Init(BUTTON_WAKEUP, BUTTON_MODE_GPIO);
 
   /* Enable the CRC Module */
   __HAL_RCC_CRC_CLK_ENABLE();
