@@ -4,6 +4,8 @@
 #include "stdlib.h"
 #include "string.h"
 #include "stdbool.h"
+#include "stm32f723e_discovery.h"
+
 
 void memWrite(int addr, int32_t data);
 int memRead(int addr);
@@ -12,12 +14,28 @@ void memTestStart(int address, int segments);
 //https://stackoverflow.com/questions/5130978/passing-and-returning-variables-in-c
 int getRandomNumber(int steps, int limit);
 void memTestSimple(int addr);
+
+void Delay(int num);
+
+void commandEcho(char * command);
+void commandDisplayClear();
+void commandDisplaySet(char * command);
+void commandMemTest(char * command);
+void commandHello();
+void commandHelp();
+void commandGame();
+
+#define CHAR_LIMIT 100
+#define MAX_LINES 100
+
+
+
 #define LIMIT 100 //maximum array limit 13000
 #define LIMIT2 100000 //for simple memtest
 //for the sleep thing (experimental)
 //#define STEPS_PER_SEC 1000
 
-
+//TODO: Glitch when launching game via command line and exiting and launching again doesnt show the pipes and display commands dont work after first game launch
 void MainTask(void) {
     while (1) {
     	GUI_Clear();
@@ -28,40 +46,27 @@ void MainTask(void) {
     	printf("\r\nType 'help' to see what you can do.\r\n");
 
     	//for the editor so it is visible while in the main program loop but clears the file when softresetting or clearing
-    	char file[100][100] = { "\0" };
+    	char file[CHAR_LIMIT][MAX_LINES] = { "\0" };
     	while(1){
 
 
-    		char command[1000] = "\0"; //limit of 1000 chars in a command otherwise it leads so unexpected behaviour
+    		char command[CHAR_LIMIT] = "\0"; //limit of 100 chars in a command otherwise it leads so unexpected behaviour
         	printf("[root@uartconsole]:~$ ");
 
 
     		scanf("%[^\r\n]%*c",command); //https://www.geeksforgeeks.org/taking-string-input-space-c-3-different-methods/
 
     		//printf("this is what you typed: %s",command);
+
+
+    		//hello command
     		if(strcmp(command,"hello") == 0){
-    			printf("hello from the uart console!\r\n");
+    			commandHello();
 
     		}
+    		//help command
     		else if(strcmp(command,"help") == 0){
-    		    printf("available commands:\r\n"
-    		    		"hello                     -> says hello\r\n"
-    		    		"reset                     -> soft reset the microcontroller/program\r\n"
-    		    		"                             and clears the FILE-buffer\r\n"
-    		    		"help  	                  -> shows this\r\n"
-    		    		"echo <string>             -> prints the given string\r\n"
-    		    		"display clear             -> clears the display\r\n"
-    		    		"display set <string>      -> displays a string on the LCD\r\n"
-    		    		"memtest <addr> <segments> -> does an error checking memtest in 100s\r\n"
-    		    		"edit                      -> opens the text editor, type '::quit' to close it\r\n"
-    		    		"                             (saves automatically, has 100chars per 100lines)\r\n"
-    		    		"							  (i think)\r\n"
-    		    		"read                      -> (editor command) reads/displays the contents\r\n"
-    		    		"                             of the file\r\n"
-    		    		"clear                     -> (editor command) clears the FILE-buffer\r\n"
-    		    		"run                       -> runs a script (if found) in the FILE-buffer\r\n"
-    		    		"                     !script to define one !endscript to close it;\r\n"
-    		    		"                      supported commands: echo, display clear/set\r\n");
+    		    commandHelp();
 
     		}
 
@@ -71,12 +76,7 @@ void MainTask(void) {
     			printf("No arguments given!\r\n");
     		}
     		else if(strncmp(command,"echo ",5) == 0){
-    		    char text[sizeof(command)] = "\0";
-    		    strcpy(text, command);
-    		    for(int i = 5; i < sizeof(text)-5; i++){ // i starts at 4 because of e c h o < TEXT > so it doesnt print "echo "
-    		    	printf("%c",text[i]);
-    		    }
-    		    printf("\r\n"); // add return and newline after completed word
+    		    commandEcho(command);
 
     		}
 
@@ -85,25 +85,11 @@ void MainTask(void) {
     			printf("No arguments given!\r\n");
     		}
     		else if(strcmp(command, "display clear") == 0){
-    			GUI_Clear();
-    			printf("Display cleared.\r\n");
+    			commandDisplayClear();
+
     		}
     		else if(strncmp(command, "display set ",12) == 0){
-    			char text[sizeof(command)] = "\0";
-    			strcpy(text, command);
-
-    			int posX = (LCD_GetXSize()-100)/2; // default value for posX
-    			int posY = (LCD_GetYSize()-20)/2; // default value for posY
-
-    			char temp[sizeof(command)] = "\0";
-    			int temp_i = 0;
-    			for(int i = 12; i < sizeof(text)-12; i++){ // i starts at 12 to filter out the user input string
-    				//temp = for constructing the string from text[] to be displayed in the GUI_Disp() func
-    				temp[temp_i] = text[i]; //start copying chars from text[] "i" place into temp[] at the temp_i place (0)
-    				temp_i++;
-    			}
-    			GUI_DispStringAt(temp, posX,posY);
-    			printf("Displayed string.\r\n");
+    			commandDisplaySet(command);
     		}
 
 
@@ -115,63 +101,35 @@ void MainTask(void) {
     		}
     		else if(strncmp(command, "memtest ", 8) == 0){
 
-
-    			//char addressval[sizeof(command)] = "\0";
-    			char text[sizeof(command)] = "\0";
-    			char getAddr[sizeof(text)] = "\0";
-    			char getSeg[sizeof(text)] = "\0";
-    			strcpy(text,command+8);
-    			int i; //save the sate of i after the for loop because thats where the second arg is
-    			for(i = 0; i < sizeof(text); i++){
-
-    				if(text[i] == ' '){
-    					//got the address
-    					break;
-    				}
-    				else{
-    					getAddr[i] = text[i];
-    				}
-    			}
-    			i++; //get away from the previous space
-    			int segmentCounter = 0;
-    			for(; i < sizeof(text); i++){
-    				if(text[i] == ' '){
-    					//got the segments
-    					break;
-    				}
-    				else{
-    					getSeg[segmentCounter] = text[i];
-    					segmentCounter++;
-    				}
-    			}
-
-    			printf("Starting memtest at %s for %s segments...\r\n",getAddr,getSeg);
-    			int address = strtol(getAddr, NULL, 16);
-    			int segments = atoi(getSeg);
-    			//printf("addre: %d %x; segments: %d %x\r\n",address,address,segments,segments);
-    			memTestStart(address,segments);
-
+    			commandMemTest(command);
 
     		}
+
+    		//game (experimental)
+    		else if(strcmp(command, "game") == 0){
+    			commandGame();
+    		}
+
 
 
     		//"reboot" command
     		else if(strcmp(command, "reset") == 0){
     			printf("Soft resetting microcontroller...\r\n");
-    			return; //dropping back to main.c main() func
+    			return; //dropping back to main.c main() func must be called inside MainTask() --> not from other func
     		}
 
-
+    		//--- editor commands not intended for script use ---
     		//editor
     		else if(strcmp(command, "edit") == 0){
 
     			int num_lines = 0;
-    			//100 maximum lines
-    			while (num_lines < 100) {
-					char input[100] = "\0";
+
+    			//1000 maximum lines
+    			while (num_lines < MAX_LINES) {
+					char input[CHAR_LIMIT] = "\0"; //1000 chars in one line
     				printf("> ");
     				scanf("%[^\r\n]%*c", input);
-    				if(strcmp(input, "::quit") == 0){
+    				if(strcmp(input, "!q") == 0){
     					printf("Closing Editor.\r\n");
     					break;
    					}
@@ -186,7 +144,7 @@ void MainTask(void) {
     		else if(strcmp(command, "read") == 0){
     			printf("FILE: \r\n-------\r\n");
 
-    			for(int i = 0; i < 100; i++){
+    			for(int i = 0; i < MAX_LINES; i++){
     				if(strcmp(file[i], "\0\0") == 0){ // hide empty lines
     					break;
     				}
@@ -207,29 +165,24 @@ void MainTask(void) {
     			printf("FILE-buffer cleared.\r\n");
 
     		}
-    		//scripting stuff
+    		//scripting stuff done directly in main for simplicity
     		else if(strcmp(command, "run") == 0){
     			if(strcmp(file[0], "!script") == 0){
     				//running script
     				int i = 1;
+    				//bool loop = false;
     				while(strcmp(file[i], "!endscript") != 0){
 
-    					//TODO migrate commands for script use to functions!
+
+    					//parsing and executing
 
 
-
-    					//echo command in script
     					if(strcmp(file[i],"echo") == 0){
     						printf("Syntax error at line %d String expected!\r\n", i);
     						break;
     					}
     					else if(strncmp(file[i], "echo ",5) == 0){
-    						char text[100] = "\0";
-    						strcpy(text, file[i]);
-    						for(int i = 5; i < sizeof(text)-5; i++){ // i starts at 4 because of e c h o < TEXT > so it doesnt print "echo "
-    							printf("%c",text[i]);
-    						}
-    						printf("\r\n"); // add return and newline after completed word
+    						commandEcho(file[i]);
     					}
 
 
@@ -239,26 +192,35 @@ void MainTask(void) {
     						break;
     					}
     					else if(strcmp(file[i], "display clear") == 0){
-    						GUI_Clear();
-    						printf("Display cleared.\r\n");
+    						commandDisplayClear();
     					}
     					else if(strncmp(file[i], "display set ",12) == 0){
-    						char text[100] = "\0";
-    						strcpy(text, file[i]);
-
-    						int posX = (LCD_GetXSize()-100)/2; // default value for posX
-    						int posY = (LCD_GetYSize()-20)/2; // default value for posY
-
-    						char temp[100] = "\0";
-    						int temp_i = 0;
-    						for(int i = 12; i < sizeof(text)-12; i++){ // i starts at 12 to filter out the user input string
-    							//temp = for constructing the string from text[] to be displayed in the GUI_Disp() func
-    							temp[temp_i] = text[i]; //start copying chars from text[] "i" place into temp[] at the temp_i place (0)
-    							temp_i++;
-    						}
-    						GUI_DispStringAt(temp, posX,posY);
-    						printf("Displayed string.\r\n");
+    						commandDisplaySet(file[i]);
     					}
+
+
+    					//hello command
+
+    					else if(strcmp(file[i], "hello") == 0){
+    						commandHello();
+    					}
+
+    					//help command
+
+    					else if(strcmp(file[i], "help") == 0){
+    						commandHelp();
+    					}
+    					else if(strcmp(file[i], "memtest") == 0){
+    						printf("No arguments given!\r\n");
+    					}
+    					else if(strncmp(file[i], "memtest ", 8) == 0){
+    						commandMemTest(file[i]);
+    					}
+
+    					else if(strcmp(file[i], "loop") == 0){
+    						//loop = true;
+    					}
+
     					/*
     					else if(strcmp(file[i], "sleep") == 0){
     						printf("Syntax error at line %d Value expected\r\n", i);
@@ -325,6 +287,80 @@ void MainTask(void) {
 
 }
 
+void commandEcho(char *command){
+	//copy org val into temp val
+	char cpy_command[CHAR_LIMIT] = "\0";
+	strcpy(cpy_command, command);
+
+
+	for(int i = 5; i < CHAR_LIMIT; i++){ // i starts at 5 because of e c h o < TEXT > so it doesnt print "echo "
+		printf("%c",cpy_command[i]);
+	}
+	printf("\r\n"); // add return and newline after completed word
+}
+
+void commandDisplayClear(){
+	GUI_Clear();
+    printf("Display cleared.\r\n");
+}
+
+void commandDisplaySet(char * command){
+	char text[CHAR_LIMIT] = "\0";
+	strcpy(text, command);
+
+	int posX = (LCD_GetXSize()-100)/2; // default value for posX
+	int posY = (LCD_GetYSize()-20)/2; // default value for posY
+
+	char temp[CHAR_LIMIT] = "\0";
+	int temp_i = 0;
+	for(int i = 12; i < CHAR_LIMIT-12; i++){ // i starts at 12 to filter out the user input string
+		//temp = for constructing the string from text[] to be displayed in the GUI_Disp() func
+		temp[temp_i] = text[i]; //start copying chars from text[] "i" place into temp[] at the temp_i place (0)
+		temp_i++;
+	}
+	GUI_DispStringAt(temp, posX,posY);
+	printf("Displayed string.\r\n");
+}
+void commandMemTest(char * command){
+
+
+	//char addressval[sizeof(command)] = "\0";
+	char text[CHAR_LIMIT] = "\0";
+	char getAddr[CHAR_LIMIT] = "\0";
+	char getSeg[CHAR_LIMIT] = "\0";
+	strcpy(text,command+8);
+	int i; //save the sate of i after the for loop because thats where the second arg is
+	for(i = 0; i < CHAR_LIMIT; i++){
+
+		if(text[i] == ' '){
+			//got the address
+			break;
+		}
+		else{
+			getAddr[i] = text[i];
+		}
+	}
+	i++; //get away from the previous space
+	int segmentCounter = 0;
+	for(; i < CHAR_LIMIT; i++){
+		if(text[i] == ' '){
+			//got the segments
+			break;
+		}
+		else{
+			getSeg[segmentCounter] = text[i];
+			segmentCounter++;
+		}
+	}
+
+	printf("Starting memtest at %s for %s segments...\r\n",getAddr,getSeg);
+	int address = strtol(getAddr, NULL, 16);
+	int segments = atoi(getSeg);
+	//printf("addre: %d %x; segments: %d %x\r\n",address,address,segments,segments);
+	memTestStart(address,segments);
+}
+
+
 void memTestStart(int address, int segments){
 	int currAddr = 0;
 	int arr[3];
@@ -356,7 +392,111 @@ void memTestStart(int address, int segments){
 	//printf("Done.\r\n");
 }
 
-// Function definitions
+void commandHello(){
+	printf("hello from the uart console!\r\n");
+}
+
+void commandHelp(){
+	printf("available commands:\r\n"
+	    		    		"hello                     -> says hello\r\n"
+	    		    		"reset                     -> soft reset the microcontroller/program\r\n"
+	    		    		"                             and clears the FILE-buffer\r\n"
+	    		    		"help  	                  -> shows this\r\n"
+	    		    		"echo <string>             -> prints the given string\r\n"
+	    		    		"display clear             -> clears the display\r\n"
+	    		    		"display set <string>      -> displays a string on the LCD\r\n"
+	    		    		"memtest <addr> <segments> -> does an error checking memtest in 100s\r\n"
+	    		    		"edit                      -> opens the text editor, type '!q' to close it\r\n"
+	    		    		"                             (saves automatically, has 100chars per 100lines)\r\n"
+	    		    		"							  (i think)\r\n"
+	    		    		"read                      -> (editor command) reads/displays the contents\r\n"
+	    		    		"                             of the file\r\n"
+	    		    		"clear                     -> (editor command) clears the FILE-buffer\r\n"
+	    		    		"run                       -> runs a script (if found) in the FILE-buffer\r\n"
+	    		    		"!script to define one !endscript to close it;\r\n"
+	    		    		"	supported commands: \r\n"
+							"	------------------- \r\n"
+	    		    		"	echo, display clear/set, \r\n"
+	    		    		"	hello, help, reset(use with caution), \r\n"
+	    		    		"	memtest \r\n");
+}
+
+
+void commandGame(){
+	printf("look at the LCD\r\n");
+	int x = 50;
+	int stepsUp = 40;
+	bool btn_pressed = false;
+	//int y = 50;
+	GUI_Clear();
+
+	int Vpos = 5;
+
+	//test pipes
+
+
+	//rectangle
+	GUI_FillRect(100,170,120,240);
+
+	//rectangle
+	GUI_FillRect(100,10,120,100);
+
+
+	//game loop
+
+	while(true){
+		GUI_SetColor(GUI_WHITE);
+
+		GUI_FillCircle(x,Vpos,5);
+		Delay(35);
+		GUI_SetColor(GUI_BLACK);
+		GUI_FillCircle(x,Vpos,5);
+
+
+		Vpos++;
+
+		//borders
+
+		if(Vpos > 230){
+			printf("End\r\n");
+			break;
+		}
+		if(Vpos < 1){
+			Vpos = 5;
+		}
+
+		//button events
+
+		int btnStateOld = BSP_PB_GetState(BUTTON_WAKEUP);
+		if(btnStateOld == 1 && !btn_pressed){
+			printf("button pressed\r\n");
+
+			Vpos -= stepsUp;
+			btn_pressed = true;
+
+		}
+		int btnStateNew = BSP_PB_GetState(BUTTON_WAKEUP);
+		if(btnStateNew == 0){
+			btn_pressed = false;
+		}
+
+		GUI_SetColor(GUI_WHITE);
+
+
+
+	}
+
+}
+
+volatile void Delay(int num){
+	for(int i = 0; i < num*1000; i++){
+		asm("nop");
+	}
+}
+
+
+
+
 
 void memWrite(int addr, int32_t data) {
     volatile int *ptr = (int *)addr;
