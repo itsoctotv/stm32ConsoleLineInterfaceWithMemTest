@@ -30,16 +30,19 @@ void commandGame();
 
 
 
+
 #define LIMIT 100 //maximum array limit 13000
 #define LIMIT2 100000 //for simple memtest
 //for the sleep thing (experimental)
 //#define STEPS_PER_SEC 1000
 
-//TODO: Glitch when launching game via command line and exiting and launching again doesnt show the pipes and display commands dont work after first game launch
+//TODO: Glitch when launching game via command line and exiting and launching again
+//      doesnt show the pipes and display commands dont work after first game launch
 void MainTask(void) {
     while (1) {
     	GUI_Clear();
     	GUI_SetFont(GUI_DEFAULT_FONT);
+    	GUI_SetColor(GUI_WHITE);
     	GUI_DispStringAt("Hello world!", (LCD_GetXSize()-100)/2, (LCD_GetYSize()-20)/2);
 
 		//char prompt[] = "[root@uartconsole]:~$ ";
@@ -425,32 +428,109 @@ void commandHelp(){
 void commandGame(){
 	printf("look at the LCD\r\n");
 	int x = 50;
-	int stepsUp = 40;
+	int stepsUp = 30;
 	bool btn_pressed = false;
 	//int y = 50;
 	GUI_Clear();
-
-	int Vpos = 5;
+	int Vpos = 100;
 
 	//test pipes
-
-
-	//rectangle
-	GUI_FillRect(100,170,120,240);
+	GUI_SetColor(GUI_WHITE);
 
 	//rectangle
-	GUI_FillRect(100,10,120,100);
 
-
-	//game loop
+	int RectXPos = 240;
+	int Rect2XPos = 120;
+	int RectWidth = 20;
 
 	while(true){
+
+		//drawing character
+
+		//generate a random position of top and bottom bars
+
+
+		//randPosTop -= 20;
+
+		GUI_SetColor(GUI_BLACK);
+
+		GUI_FillRect(x,Vpos-5,x+5,Vpos+5);
+		//printf("%d",GUI_GetTime());
+		Delay(5);
+		GUI_SetColor(GUI_WHITE);
+		GUI_FillRect(x,Vpos,x+5,Vpos+5);
+		Delay(5);
+
+
+
+		int PosBottom = 100;
+		int PosTop = 40;
+		int PosBottom2 = 180;
+		int PosTop2 = 120;
+
+		if(Rect2XPos < -20){
+			GUI_SetColor(GUI_BLACK);
+
+			GUI_FillRect(Rect2XPos+RectWidth,PosBottom2,Rect2XPos+RectWidth,240);
+
+			GUI_FillRect(Rect2XPos+RectWidth,0,Rect2XPos+RectWidth,PosTop2);
+			Rect2XPos = 240;
+			GUI_SetColor(GUI_WHITE);
+
+		}
+		if(RectXPos < -20 ){
+			GUI_SetColor(GUI_BLACK);
+
+			GUI_FillRect(RectXPos+RectWidth,PosBottom,RectXPos+RectWidth,240);
+
+			GUI_FillRect(RectXPos+RectWidth,0,RectXPos+RectWidth,PosTop);
+			RectXPos = 120;
+			GUI_SetColor(GUI_WHITE);
+
+		}
+
+		//drawing second pipe
+		GUI_SetColor(GUI_WHITE);
+							//v--- bottom bar	 v---limit bottom bar (to the edge of the screen
+		GUI_FillRect(RectXPos,PosBottom,RectXPos+RectWidth,240);
+			//                v--- limit top bar (to the edge of the screen
+												//  v--- top bar
+		GUI_FillRect(RectXPos,0,RectXPos+RectWidth,PosTop);
+
+		Delay(10);
+
+		GUI_SetColor(GUI_BLACK);
+
+
+		GUI_FillRect(RectXPos+RectWidth,PosBottom,RectXPos+RectWidth,240);
+
+		GUI_FillRect(RectXPos+RectWidth,0,RectXPos+RectWidth,PosTop);
+		Delay(10);
+		RectXPos--;
+
+
+		//drawing first pipe
 		GUI_SetColor(GUI_WHITE);
 
-		GUI_FillCircle(x,Vpos,5);
-		Delay(35);
+		GUI_FillRect(Rect2XPos,PosBottom2,Rect2XPos+RectWidth,240);
+
+		GUI_FillRect(Rect2XPos,0,Rect2XPos+RectWidth,PosTop2);
+
+		Delay(10);
+
 		GUI_SetColor(GUI_BLACK);
-		GUI_FillCircle(x,Vpos,5);
+
+
+		GUI_FillRect(Rect2XPos+RectWidth,PosBottom2,Rect2XPos+RectWidth,240);
+
+		GUI_FillRect(Rect2XPos+RectWidth,0,Rect2XPos+RectWidth,PosTop2);
+		Delay(10);
+		Rect2XPos--;
+
+
+
+
+
 
 
 		Vpos++;
@@ -470,8 +550,11 @@ void commandGame(){
 		int btnStateOld = BSP_PB_GetState(BUTTON_WAKEUP);
 		if(btnStateOld == 1 && !btn_pressed){
 			printf("button pressed\r\n");
-
+			//delete rectangle at old posision
+			GUI_SetColor(GUI_BLACK);
+			GUI_FillRect(x,Vpos-5,x+5,Vpos+5);
 			Vpos -= stepsUp;
+			GUI_SetColor(GUI_WHITE);
 			btn_pressed = true;
 
 		}
@@ -480,11 +563,20 @@ void commandGame(){
 			btn_pressed = false;
 		}
 
-		GUI_SetColor(GUI_WHITE);
+
+
+	}
+
+
+	//game loop
+
+	while(true){
+
 
 
 
 	}
+	return;
 
 }
 
