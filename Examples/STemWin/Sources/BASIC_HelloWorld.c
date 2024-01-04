@@ -36,8 +36,9 @@ void commandGame();
 //for the sleep thing (experimental)
 //#define STEPS_PER_SEC 1000
 
-//TODO: Glitch when launching game via command line and exiting and launching again
-//      doesnt show the pipes and display commands dont work after first game launch
+//TODO:  When moving pipes it displays parts of the pipes at closed places
+
+
 void MainTask(void) {
     while (1) {
     	GUI_Clear();
@@ -434,14 +435,20 @@ void commandGame(){
 	GUI_Clear();
 	int Vpos = 100;
 
-	//test pipes
-	GUI_SetColor(GUI_WHITE);
+	//set the background color
+	GUI_SetColor(GUI_CYAN);
+	GUI_FillRect(0,0,240,240);
 
 	//rectangle
 
 	int RectXPos = 240;
 	int Rect2XPos = 120;
 	int RectWidth = 20;
+
+	//rng
+	int randSteps = 1;
+	int seed = 12437899;
+	int genNum = 0;
 
 	while(true){
 
@@ -452,45 +459,99 @@ void commandGame(){
 
 		//randPosTop -= 20;
 
-		GUI_SetColor(GUI_BLACK);
+		GUI_SetColor(GUI_CYAN);
 
 		GUI_FillRect(x,Vpos-5,x+5,Vpos+5);
 		//printf("%d",GUI_GetTime());
 		Delay(5);
-		GUI_SetColor(GUI_WHITE);
+		GUI_SetColor(GUI_YELLOW);
 		GUI_FillRect(x,Vpos,x+5,Vpos+5);
 		Delay(5);
 
+		int pipeDistance = 180;
+		//predefined state of pipes first num is TOP second is BOTTOM (pairs)
+		//they get selected randomly
+
+		//leave 70 as a space between
+		int posPipe1[10][2] = { {40, 110},
+								 {20, 90},
+								 {130, 200},
+								 {75, 145},
+								 {90, 180},
+								 {100, 170},
+								 {50, 130},
+								 {35, 105},
+								 {220,150},
+								 {200, 130} };
 
 
-		int PosBottom = 100;
-		int PosTop = 40;
-		int PosBottom2 = 180;
-		int PosTop2 = 120;
+		int posPipe2[10][2] = { {40, 110},
+								{20, 90},
+								{130, 200},
+								{75, 145},
+								{90, 180},
+								{100, 170},
+								{50, 130},
+								{35, 105},
+								{220,150},
+								{200, 130} };
 
+
+		//first pipe top and bottom
+		//set standard positin at first run...
+		int PosTop = posPipe1[genNum][0]; //first [] --> the value at the random index
+										  //second [] --> the value corresponding to it aka the second value of the first index
+		int PosBottom = posPipe1[genNum][1];
+		//printf("POS1:   %d    %d\r\n", PosTop, PosBottom);
+
+
+
+
+
+		//second pipe top and bottom, set default position
+		int PosTop2 = posPipe2[genNum][0];
+		int PosBottom2 = posPipe2[genNum][1];
+
+		//printf("POS1:   %d    %d\r\n", PosTop2, PosBottom2);
+		//coutner for pseudo rng
+		randSteps++;
+
+
+		//regenerate pipes
 		if(Rect2XPos < -20){
-			GUI_SetColor(GUI_BLACK);
+			//first pipe
+			GUI_SetColor(GUI_CYAN);
 
 			GUI_FillRect(Rect2XPos+RectWidth,PosBottom2,Rect2XPos+RectWidth,240);
 
 			GUI_FillRect(Rect2XPos+RectWidth,0,Rect2XPos+RectWidth,PosTop2);
-			Rect2XPos = 240;
-			GUI_SetColor(GUI_WHITE);
+			Rect2XPos = RectXPos + (pipeDistance / 2);
+			GUI_SetColor(GUI_GREEN);
+
+			//generate new position and set the variable for the next drawcall
+
+			srand(seed + randSteps);
+			genNum = rand() % 10; // get random number from 0-9 for array
 
 		}
-		if(RectXPos < -20 ){
-			GUI_SetColor(GUI_BLACK);
+		if(RectXPos < -20){
+			//second pipe
+			GUI_SetColor(GUI_CYAN);
 
 			GUI_FillRect(RectXPos+RectWidth,PosBottom,RectXPos+RectWidth,240);
 
 			GUI_FillRect(RectXPos+RectWidth,0,RectXPos+RectWidth,PosTop);
-			RectXPos = 120;
-			GUI_SetColor(GUI_WHITE);
+			RectXPos = Rect2XPos + (pipeDistance / 2);
+			GUI_SetColor(GUI_GREEN);
 
+
+			//generate new position and set the variable for the next drawcall
+			srand(seed+13231233 + randSteps); //change the seed
+			genNum = rand() % 10; // get random number from 0-9 for array
 		}
 
 		//drawing second pipe
-		GUI_SetColor(GUI_WHITE);
+		GUI_SetColor(GUI_GREEN);
 							//v--- bottom bar	 v---limit bottom bar (to the edge of the screen
 		GUI_FillRect(RectXPos,PosBottom,RectXPos+RectWidth,240);
 			//                v--- limit top bar (to the edge of the screen
@@ -499,7 +560,7 @@ void commandGame(){
 
 		Delay(10);
 
-		GUI_SetColor(GUI_BLACK);
+		GUI_SetColor(GUI_CYAN);
 
 
 		GUI_FillRect(RectXPos+RectWidth,PosBottom,RectXPos+RectWidth,240);
@@ -510,7 +571,7 @@ void commandGame(){
 
 
 		//drawing first pipe
-		GUI_SetColor(GUI_WHITE);
+		GUI_SetColor(GUI_GREEN);
 
 		GUI_FillRect(Rect2XPos,PosBottom2,Rect2XPos+RectWidth,240);
 
@@ -518,7 +579,7 @@ void commandGame(){
 
 		Delay(10);
 
-		GUI_SetColor(GUI_BLACK);
+		GUI_SetColor(GUI_CYAN);
 
 
 		GUI_FillRect(Rect2XPos+RectWidth,PosBottom2,Rect2XPos+RectWidth,240);
@@ -528,17 +589,16 @@ void commandGame(){
 		Rect2XPos--;
 
 
-
-
-
-
-
 		Vpos++;
+
+
 
 		//borders
 
 		if(Vpos > 230){
-			printf("End\r\n");
+			//gameover
+			GUI_SetColor(GUI_WHITE);
+	    	GUI_DispStringAt("Game Over!", (LCD_GetXSize()-100)/2, (LCD_GetYSize()-20)/2);
 			break;
 		}
 		if(Vpos < 1){
@@ -551,10 +611,10 @@ void commandGame(){
 		if(btnStateOld == 1 && !btn_pressed){
 			printf("button pressed\r\n");
 			//delete rectangle at old posision
-			GUI_SetColor(GUI_BLACK);
+			GUI_SetColor(GUI_CYAN);
 			GUI_FillRect(x,Vpos-5,x+5,Vpos+5);
 			Vpos -= stepsUp;
-			GUI_SetColor(GUI_WHITE);
+			GUI_SetColor(GUI_GREEN);
 			btn_pressed = true;
 
 		}
@@ -568,18 +628,10 @@ void commandGame(){
 	}
 
 
-	//game loop
-
-	while(true){
-
-
-
-
-	}
-	return;
 
 }
 
+//bitte nicht anschauen
 volatile void Delay(int num){
 	for(int i = 0; i < num*1000; i++){
 		asm("nop");
