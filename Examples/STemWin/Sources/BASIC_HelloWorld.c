@@ -291,7 +291,7 @@ void MainTask(void) {
 
 }
 
-void commandEcho(char *command){
+void commandEcho(char * command){
 	//copy org val into temp val
 	char cpy_command[CHAR_LIMIT] = "\0";
 	strcpy(cpy_command, command);
@@ -406,6 +406,7 @@ void commandHelp(){
 	    		    		"reset                     -> soft reset the microcontroller/program\r\n"
 	    		    		"                             and clears the FILE-buffer\r\n"
 	    		    		"help  	                  -> shows this\r\n"
+							"game                      -> play flappy birds (experimental)\r\n"
 	    		    		"echo <string>             -> prints the given string\r\n"
 	    		    		"display clear             -> clears the display\r\n"
 	    		    		"display set <string>      -> displays a string on the LCD\r\n"
@@ -421,8 +422,7 @@ void commandHelp(){
 	    		    		"	supported commands: \r\n"
 							"	------------------- \r\n"
 	    		    		"	echo, display clear/set, \r\n"
-	    		    		"	hello, help, reset(use with caution), \r\n"
-	    		    		"	memtest \r\n");
+	    		    		"	hello, help, memtest\r\n");
 }
 
 
@@ -447,18 +447,18 @@ void commandGame(){
 
 	//rng
 	int randSteps = 1;
-	int seed = 12437899;
-	int genNum = 0;
+	//int seed = 12437899;
+	//int genNum = 0;
 
 	while(true){
 
-		//drawing character
 
-		//generate a random position of top and bottom bars
+
 
 
 		//randPosTop -= 20;
 
+		//drawing character
 		GUI_SetColor(GUI_CYAN);
 
 		GUI_FillRect(x,Vpos-5,x+5,Vpos+5);
@@ -481,8 +481,8 @@ void commandGame(){
 								 {100, 170},
 								 {50, 130},
 								 {35, 105},
-								 {220,150},
-								 {200, 130} };
+								 {150,220},
+								 {130, 200} };
 
 
 		int posPipe2[10][2] = { {40, 110},
@@ -493,15 +493,15 @@ void commandGame(){
 								{100, 170},
 								{50, 130},
 								{35, 105},
-								{220,150},
-								{200, 130} };
+								{150,220},
+								{130, 200} };
 
 
 		//first pipe top and bottom
 		//set standard positin at first run...
-		int PosTop = posPipe1[genNum][0]; //first [] --> the value at the random index
+		int PosTop = posPipe1[4][0]; //first [] --> the value at the random index
 										  //second [] --> the value corresponding to it aka the second value of the first index
-		int PosBottom = posPipe1[genNum][1];
+		int PosBottom = posPipe1[4][1];
 		//printf("POS1:   %d    %d\r\n", PosTop, PosBottom);
 
 
@@ -509,8 +509,8 @@ void commandGame(){
 
 
 		//second pipe top and bottom, set default position
-		int PosTop2 = posPipe2[genNum][0];
-		int PosBottom2 = posPipe2[genNum][1];
+		int PosTop2 = posPipe2[7][0];
+		int PosBottom2 = posPipe2[7][1];
 
 		//printf("POS1:   %d    %d\r\n", PosTop2, PosBottom2);
 		//coutner for pseudo rng
@@ -530,8 +530,8 @@ void commandGame(){
 
 			//generate new position and set the variable for the next drawcall
 
-			srand(seed + randSteps);
-			genNum = rand() % 10; // get random number from 0-9 for array
+			//srand(seed + randSteps);
+			//genNum = rand() % 10; // get random number from 0-9 for array
 
 		}
 		if(RectXPos < -20){
@@ -546,13 +546,13 @@ void commandGame(){
 
 
 			//generate new position and set the variable for the next drawcall
-			srand(seed+13231233 + randSteps); //change the seed
-			genNum = rand() % 10; // get random number from 0-9 for array
+			//srand(seed+13231233 + randSteps+16345); //change the seed
+			//genNum = rand() % 10; // get random number from 0-9 for array
 		}
 
 		//drawing second pipe
 		GUI_SetColor(GUI_GREEN);
-							//v--- bottom bar	 v---limit bottom bar (to the edge of the screen
+							//v--- bottom bar	            v---limit bottom bar (to the edge of the screen
 		GUI_FillRect(RectXPos,PosBottom,RectXPos+RectWidth,240);
 			//                v--- limit top bar (to the edge of the screen
 												//  v--- top bar
@@ -591,17 +591,23 @@ void commandGame(){
 
 		Vpos++;
 
-
+		//fix shit vvvvvvv
+		/*if((Vpos == PosBottom || Vpos == PosTop || Vpos == PosTop2) && (Vpos == Rect2XPos || Vpos == RectXPos)){
+			GUI_SetColor(GUI_WHITE);
+			GUI_DispStringAt("Game Over!", (LCD_GetXSize()-100)/2, (LCD_GetYSize()-20)/2);
+			break;
+		}*/
 
 		//borders
 
 		if(Vpos > 230){
-			//gameover
+			//gameover when touched the bottom border
 			GUI_SetColor(GUI_WHITE);
 	    	GUI_DispStringAt("Game Over!", (LCD_GetXSize()-100)/2, (LCD_GetYSize()-20)/2);
 			break;
 		}
 		if(Vpos < 1){
+			//push character back from top border
 			Vpos = 5;
 		}
 
@@ -634,6 +640,10 @@ void commandGame(){
 //bitte nicht anschauen
 volatile void Delay(int num){
 	for(int i = 0; i < num*1000; i++){
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
 		asm("nop");
 	}
 }
