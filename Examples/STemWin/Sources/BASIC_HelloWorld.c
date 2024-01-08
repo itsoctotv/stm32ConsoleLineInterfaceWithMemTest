@@ -128,9 +128,9 @@ void MainTask(void) {
 
     			int num_lines = 0;
 
-    			//1000 maximum lines
+    			//100 maximum lines
     			while (num_lines < MAX_LINES) {
-					char input[CHAR_LIMIT] = "\0"; //1000 chars in one line
+					char input[CHAR_LIMIT] = "\0"; //100 chars in one line
     				printf("> ");
     				scanf("%[^\r\n]%*c", input);
     				if(strcmp(input, "!q") == 0){
@@ -322,7 +322,7 @@ void commandDisplaySet(char * command){
 		temp[temp_i] = text[i]; //start copying chars from text[] "i" place into temp[] at the temp_i place (0)
 		temp_i++;
 	}
-	GUI_DispStringAt(temp, posX,posY);
+	GUI_DispStringAt(temp, posX, posY);
 	printf("Displayed string.\r\n");
 }
 void commandMemTest(char * command){
@@ -560,6 +560,8 @@ void commandGame(){
 
 		Delay(10);
 
+		//draw shadow for second pipe
+
 		GUI_SetColor(GUI_CYAN);
 
 
@@ -578,6 +580,7 @@ void commandGame(){
 		GUI_FillRect(Rect2XPos,0,Rect2XPos+RectWidth,PosTop2);
 
 		Delay(10);
+		//draw shadow for first pipe
 
 		GUI_SetColor(GUI_CYAN);
 
@@ -591,7 +594,7 @@ void commandGame(){
 
 		Vpos++;
 
-		//fix shit vvvvvvv
+		//fix collision vvvvvvv
 		/*if((Vpos == PosBottom || Vpos == PosTop || Vpos == PosTop2) && (Vpos == Rect2XPos || Vpos == RectXPos)){
 			GUI_SetColor(GUI_WHITE);
 			GUI_DispStringAt("Game Over!", (LCD_GetXSize()-100)/2, (LCD_GetYSize()-20)/2);
@@ -601,7 +604,7 @@ void commandGame(){
 		//borders
 
 		if(Vpos > 230){
-			//gameover when touched the bottom border
+			//gameover when touching the bottom border
 			GUI_SetColor(GUI_WHITE);
 	    	GUI_DispStringAt("Game Over!", (LCD_GetXSize()-100)/2, (LCD_GetYSize()-20)/2);
 			break;
